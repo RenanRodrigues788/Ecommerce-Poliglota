@@ -3,10 +3,10 @@
 Um sistema de gestão educacional robusto desenvolvido para demonstrar o conceito prático de **Persistência Poliglota**, utilizando quatro paradigmas diferentes de bancos de dados para resolver problemas específicos e complementares de negócio dentro do mesmo ecossistema acadêmico.
 
 ## 👥 Integrantes do Grupo
-* **Isabelle:** Módulo Pedagógico (MongoDB)
-* **Akira:** Módulo de Identidade (PostgreSQL)
-* **Leonardo:** Módulo de Regras Curriculares (Neo4j)
-* **Renan:** Módulo de Auditoria e Timeline (Cassandra)
+* **ISABELLE SANTOS SOUZA:** Módulo Pedagógico (MongoDB)
+* **AKIRA HIGA:** Módulo de Identidade (PostgreSQL)
+* **LEONARDO FERNANDES E DA SILVA:** Módulo de Regras Curriculares (Neo4j)
+* **RENAN FERREIRA RODRIGUES:** Módulo de Auditoria e Timeline (Cassandra)
 
 ---
 
