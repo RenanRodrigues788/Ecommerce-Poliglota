@@ -248,6 +248,7 @@ A operação principal é confirmada no PostgreSQL antes da tentativa de registr
 Ecommerce-Poliglota/
 │
 ├── README.md
+├── inicializar.sh
 ├── cassandra.sql
 ├── catalogo.json
 ├── docker-compose.yml
@@ -314,15 +315,39 @@ docker compose up -d --build
 docker compose ps
 ```
 
-### Passo 5 — Executar a aplicação
+Verifique se os cinco serviços estão em execução: PostgreSQL, MongoDB, Neo4j, Cassandra e aplicação Python.
+
+**Atenção:** na primeira execução, os bancos podem demorar para ficar disponíveis, especialmente o Cassandra. Aguarde a conclusão da inicialização antes de prosseguir.
+
+### Passo 5 — Inicializar os bancos de dados
+
+Após os serviços estarem disponíveis, execute:
+
+```bash
+./inicializar.sh
+```
+
+O script realiza automaticamente as seguintes operações:
+
+1. **Cassandra:** cria o keyspace `sistema_auditoria` e a tabela `logs_eventos`, caso ainda não existam.
+2. **Neo4j:** executa os comandos de `queries.cypher`, criando clientes, produtos, categorias e relacionamentos de exemplo.
+3. **MongoDB:** importa os três produtos do arquivo `catalogo.json`.
+
+O PostgreSQL é inicializado separadamente pelo arquivo `init.sql`, executado automaticamente pelo contêiner na primeira criação do volume de dados.
+
+O script `inicializar.sh` foi desenvolvido para permitir novas execuções sem duplicar os registros de exemplo identificados por suas respectivas chaves.
+
+### Passo 6 — Executar a aplicação
 
 ```bash
 docker compose exec app_python python main.py
 ```
 
-### Passo 6 — Encerrar os serviços
+O sistema apresentará um menu interativo com as opções de cadastro, consulta, pedidos, pagamentos, recomendações e auditoria.
 
-No menu, selecione a opção 0 para sair.
+### Passo 7 — Encerrar os serviços
+
+No menu da aplicação, selecione a opção `0` para sair.
 
 Para desligar os contêineres:
 
@@ -330,9 +355,7 @@ Para desligar os contêineres:
 docker compose down
 ```
 
-Os volumes persistentes dos bancos são preservados com esse comando.
-
----
+Esse comando preserva os volumes persistentes dos bancos de dados.
 
 ## 🖥️ 9. Funcionalidades do Sistema
 

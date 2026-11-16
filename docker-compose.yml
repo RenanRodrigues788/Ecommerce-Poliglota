@@ -77,7 +77,8 @@ services:
     tty: true
     volumes:
       - ./src:/app
-
+      - ./catalogo.json:/dados/catalogo.json:ro
+      - ./queries.cypher:/dados/queries.cypher:ro
 
 volumes:
   mongo_data:

@@ -4,7 +4,7 @@ from database.mongo_db import MongoModule
 
 
 def importar_catalogo():
-    with open("/app/catalogo.json", "r", encoding="utf-8") as arquivo:
+    with open("/dados/catalogo.json", "r", encoding="utf-8") as arquivo:
         produtos = json.load(arquivo)
 
     mongo = MongoModule()
