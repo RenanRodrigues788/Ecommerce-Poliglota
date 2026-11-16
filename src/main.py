@@ -17,6 +17,7 @@ def exibir_menu():
     print("4 - Listar produtos")
     print("5 - Criar pedido")
     print("6 - Listar pedidos")
+    print("7 - Registrar pagamento")
     print("0 - Sair")
 
     print("=" * 40)
@@ -172,6 +173,68 @@ def iniciar_sistema():
                         f"Total do pedido: R$ {pedido[5]:.2f} | "
                         f"Status: {pedido[6]}"
                     )
+
+            # REGISTRAR PAGAMENTO
+            elif opcao == "7":
+
+                print("\n--- REGISTRAR PAGAMENTO ---")
+
+                try:
+                    pedido_id = int(input("ID do pedido: "))
+
+                except ValueError:
+                    print("Erro: informe um ID numerico.")
+                    continue
+
+                print("\nMetodos de pagamento:")
+                print("1 - PIX")
+                print("2 - Cartao")
+                print("3 - Boleto")
+
+                opcao_metodo = input("Escolha o metodo: ").strip()
+
+                metodos = {
+                    "1": "PIX",
+                    "2": "CARTAO",
+                    "3": "BOLETO"
+                }
+
+                metodo = metodos.get(opcao_metodo)
+
+                if metodo is None:
+                    print("Metodo de pagamento invalido.")
+                    continue
+
+                print("\nStatus do pagamento:")
+                print("1 - Aprovado")
+                print("2 - Pendente")
+                print("3 - Recusado")
+
+                opcao_status = input("Escolha o status: ").strip()
+
+                status_disponiveis = {
+                    "1": "APROVADO",
+                    "2": "PENDENTE",
+                    "3": "RECUSADO"
+                }
+
+                status = status_disponiveis.get(opcao_status)
+
+                if status is None:
+                    print("Status de pagamento invalido.")
+                    continue
+
+                try:
+                    resultado = postgres_db.registrar_pagamento(
+                        pedido_id,
+                        metodo,
+                        status
+                    )
+
+                    print(resultado)
+
+                except Exception as erro:
+                    print(f"Erro ao registrar pagamento: {erro}")
 
 
             # SAIR

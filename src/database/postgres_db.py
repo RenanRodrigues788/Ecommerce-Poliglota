@@ -216,6 +216,96 @@ class PostgresModule:
         return self.cursor.fetchall()
 
     # ======================================
+    # PAGAMENTOS
+    # ======================================
+
+    def registrar_pagamento(self, pedido_id, metodo, status):
+        try:
+            metodo = metodo.strip().upper()
+            status = status.strip().upper()
+
+            if metodo not in ("PIX", "CARTAO", "BOLETO"):
+                return "Erro: metodo de pagamento invalido."
+
+            if status not in ("PENDENTE", "APROVADO", "RECUSADO"):
+                return "Erro: status de pagamento invalido."
+
+            # Buscar e bloquear o pedido
+            self.cursor.execute(
+                """
+                SELECT valor_total, status
+                FROM pedidos
+                WHERE id_pedido = %s
+                FOR UPDATE
+                """,
+                (pedido_id,)
+            )
+
+            pedido = self.cursor.fetchone()
+
+            if pedido is None:
+                self.conexao.rollback()
+                return "Erro: pedido nao encontrado."
+
+            valor_total, status_pedido = pedido
+
+            if status_pedido != "PENDENTE":
+                self.conexao.rollback()
+                return "Erro: o pedido nao esta pendente."
+
+            # Verificar se ja existe pagamento
+            self.cursor.execute(
+                """
+                SELECT id_pagamento
+                FROM pagamentos
+                WHERE pedido_id = %s
+                """,
+                (pedido_id,)
+            )
+
+            if self.cursor.fetchone() is not None:
+                self.conexao.rollback()
+                return "Erro: este pedido ja possui um pagamento registrado."
+
+            # Registrar o pagamento
+            self.cursor.execute(
+                """
+                INSERT INTO pagamentos
+                    (pedido_id, metodo, status, valor)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id_pagamento
+                """,
+                (pedido_id, metodo, status, valor_total)
+            )
+
+            pagamento_id = self.cursor.fetchone()[0]
+
+            # Atualizar o pedido se aprovado
+            if status == "APROVADO":
+                self.cursor.execute(
+                    """
+                    UPDATE pedidos
+                    SET status = 'PAGO'
+                    WHERE id_pedido = %s
+                    """,
+                    (pedido_id,)
+                )
+
+            self.conexao.commit()
+
+            return (
+                f"Pagamento {pagamento_id} registrado com sucesso! "
+                f"Pedido: {pedido_id} | "
+                f"Metodo: {metodo} | "
+                f"Status: {status} | "
+                f"Valor: R$ {valor_total:.2f}"
+            )
+
+        except Exception:
+            self.conexao.rollback()
+            raise
+
+    # ======================================
     # ENCERRAR CONEXAO
     # ======================================
 
