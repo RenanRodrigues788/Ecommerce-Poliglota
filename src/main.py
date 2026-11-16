@@ -16,6 +16,7 @@ def exibir_menu():
     print("3 - Cadastrar produto")
     print("4 - Listar produtos")
     print("5 - Criar pedido")
+    print("6 - Listar pedidos")
     print("0 - Sair")
 
     print("=" * 40)
@@ -149,6 +150,28 @@ def iniciar_sistema():
 
                 except Exception as erro:
                     print(f"Erro ao criar pedido: {erro}")
+
+
+            # LISTAR PEDIDOS
+            elif opcao == "6":
+
+                print("\n--- LISTA DE PEDIDOS ---")
+
+                pedidos = postgres_db.listar_pedidos()
+
+                if not pedidos:
+                    print("Nenhum pedido cadastrado.")
+
+                for pedido in pedidos:
+                    print(
+                        f"Pedido: {pedido[0]} | "
+                        f"Cliente: {pedido[1]} | "
+                        f"Produto: {pedido[2]} | "
+                        f"Quantidade: {pedido[3]} | "
+                        f"Preco unitario: R$ {pedido[4]:.2f} | "
+                        f"Total do pedido: R$ {pedido[5]:.2f} | "
+                        f"Status: {pedido[6]}"
+                    )
 
 
             # SAIR

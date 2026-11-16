@@ -191,6 +191,30 @@ class PostgresModule:
             raise
 
 
+    def listar_pedidos(self):
+        self.cursor.execute(
+            """
+            SELECT
+                p.id_pedido,
+                c.nome,
+                pr.nome,
+                ip.quantidade,
+                ip.preco_unitario,
+                p.valor_total,
+                p.status
+            FROM pedidos p
+            JOIN clientes c
+                ON p.cliente_id = c.id_cliente
+            JOIN itens_pedido ip
+                ON p.id_pedido = ip.pedido_id
+            JOIN produtos pr
+                ON ip.produto_id = pr.id_produto
+            ORDER BY p.id_pedido
+            """
+        )
+
+        return self.cursor.fetchall()
+
     # ======================================
     # ENCERRAR CONEXAO
     # ======================================
