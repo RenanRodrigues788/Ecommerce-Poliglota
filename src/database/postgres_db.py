@@ -179,12 +179,20 @@ class PostgresModule:
             # Confirmar todas as alteracoes
             self.conexao.commit()
 
-            return (
-                f"Pedido {pedido_id} criado com sucesso! "
-                f"Produto: {nome} | "
-                f"Quantidade: {quantidade} | "
-                f"Total: R$ {valor_total:.2f}"
-            )
+            return {
+                "sucesso": True,
+                "pedido_id": pedido_id,
+                "cliente_id": cliente_id,
+                "produto_id": produto_id,
+                "quantidade": quantidade,
+                "valor_total": float(valor_total),
+                "mensagem": (
+                    f"Pedido {pedido_id} criado com sucesso! "
+                    f"Produto: {nome} | "
+                    f"Quantidade: {quantidade} | "
+                    f"Total: R$ {valor_total:.2f}"
+                )
+            }
 
         except Exception:
             self.conexao.rollback()
@@ -233,7 +241,7 @@ class PostgresModule:
             # Buscar e bloquear o pedido
             self.cursor.execute(
                 """
-                SELECT valor_total, status
+                SELECT cliente_id, valor_total, status
                 FROM pedidos
                 WHERE id_pedido = %s
                 FOR UPDATE
@@ -247,7 +255,7 @@ class PostgresModule:
                 self.conexao.rollback()
                 return "Erro: pedido nao encontrado."
 
-            valor_total, status_pedido = pedido
+            cliente_id, valor_total, status_pedido = pedido
 
             if status_pedido != "PENDENTE":
                 self.conexao.rollback()
@@ -293,13 +301,22 @@ class PostgresModule:
 
             self.conexao.commit()
 
-            return (
-                f"Pagamento {pagamento_id} registrado com sucesso! "
-                f"Pedido: {pedido_id} | "
-                f"Metodo: {metodo} | "
-                f"Status: {status} | "
-                f"Valor: R$ {valor_total:.2f}"
-            )
+            return {
+                "sucesso": True,
+                "pagamento_id": pagamento_id,
+                "pedido_id": pedido_id,
+                "cliente_id": cliente_id,
+                "metodo": metodo,
+                "status": status,
+                "valor_total": float(valor_total),
+                "mensagem": (
+                    f"Pagamento {pagamento_id} registrado com sucesso! "
+                    f"Pedido: {pedido_id} | "
+                    f"Metodo: {metodo} | "
+                    f"Status: {status} | "
+                    f"Valor: R$ {valor_total:.2f}"
+                )
+            }
 
         except Exception:
             self.conexao.rollback()

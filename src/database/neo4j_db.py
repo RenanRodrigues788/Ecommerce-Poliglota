@@ -1,9 +1,9 @@
 import os
 from neo4j import GraphDatabase
 
-URI = os.getenv("NEO4J_URI", "bolt://44.200.239.219:7687")
+URI = os.getenv("NEO4J_URI", "bolt://neo4j:7687")
 USER = os.getenv("NEO4J_USERNAME", "neo4j")
-PASSWORD = os.getenv("NEO4J_PASSWORD", "stuffing-ports-bud")
+PASSWORD = os.environ["NEO4J_PASSWORD"]
 DATABASE = os.getenv("NEO4J_DATABASE", "neo4j")
 
 def executar_query(query, **parametros):
@@ -28,3 +28,24 @@ def sugerir_proximas_materias(aluno_id):
     """
     resultado = executar_query(query, aluno_id=aluno_id)
     return [{"codigo": registro["codigo"], "nome": registro["nome"]} for registro in resultado]
+
+def recomendar_produtos(cliente_id):
+    query = """
+    MATCH (c:Cliente {id_cliente: $cliente_id})-[:COMPROU]->(p:Produto)
+    MATCH (p)-[:RELACIONADO_A]-(recomendado:Produto)
+    WHERE NOT (c)-[:COMPROU]->(recomendado)
+    RETURN DISTINCT
+        recomendado.id_produto AS id,
+        recomendado.nome AS nome
+    ORDER BY nome
+    """
+
+    resultado = executar_query(query, cliente_id=cliente_id)
+
+    return [
+        {
+            "id": registro["id"],
+            "nome": registro["nome"]
+        }
+        for registro in resultado
+    ]
