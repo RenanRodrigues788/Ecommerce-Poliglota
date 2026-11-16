@@ -1,175 +1,54 @@
-CREATE TABLE alunos (
-    id_aluno SERIAL PRIMARY KEY,
+
+-- E-commerce Poliglota: PostgreSQL
+
+CREATE TABLE clientes (
+    id_cliente SERIAL PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
-    cpf VARCHAR(11) UNIQUE NOT NULL,
-    data_nascimento DATE NOT NULL,
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    email VARCHAR(255) UNIQUE NOT NULL,
+    telefone VARCHAR(20),
+    criado_em TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-
-CREATE TABLE professores (
-    id_professor SERIAL PRIMARY KEY,
+CREATE TABLE produtos (
+    id_produto SERIAL PRIMARY KEY,
+    sku VARCHAR(50) UNIQUE NOT NULL,
     nome VARCHAR(150) NOT NULL,
-    cpf VARCHAR(11) UNIQUE NOT NULL,
-    especialidade VARCHAR(100),
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    preco NUMERIC(12,2) NOT NULL CHECK (preco >= 0),
+    estoque INTEGER NOT NULL DEFAULT 0 CHECK (estoque >= 0),
+    ativo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-
-
-CREATE TABLE disciplinas (
-    id_disciplina SERIAL PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    codigo VARCHAR(20) UNIQUE NOT NULL,
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE pedidos (
+    id_pedido SERIAL PRIMARY KEY,
+    cliente_id INTEGER NOT NULL REFERENCES clientes(id_cliente),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE'
+        CHECK (status IN ('PENDENTE', 'PAGO', 'CANCELADO')),
+    valor_total NUMERIC(12,2) NOT NULL DEFAULT 0
+        CHECK (valor_total >= 0),
+    criado_em TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-
-
-CREATE TABLE professor_turma (
-    id_vinculo SERIAL PRIMARY KEY,
-
-    professor_id INTEGER NOT NULL,
-    disciplina_id INTEGER NOT NULL,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_professor
-        FOREIGN KEY (professor_id)
-        REFERENCES professores(id_professor)
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_disciplina
-        FOREIGN KEY (disciplina_id)
-        REFERENCES disciplinas(id_disciplina)
-        ON DELETE CASCADE
+CREATE TABLE itens_pedido (
+    id_item SERIAL PRIMARY KEY,
+    pedido_id INTEGER NOT NULL
+        REFERENCES pedidos(id_pedido) ON DELETE CASCADE,
+    produto_id INTEGER NOT NULL REFERENCES produtos(id_produto),
+    quantidade INTEGER NOT NULL CHECK (quantidade > 0),
+    preco_unitario NUMERIC(12,2) NOT NULL
+        CHECK (preco_unitario >= 0),
+    UNIQUE (pedido_id, produto_id)
 );
 
+CREATE TABLE pagamentos (
+    id_pagamento SERIAL PRIMARY KEY,
+    pedido_id INTEGER NOT NULL UNIQUE REFERENCES pedidos(id_pedido),
+    metodo VARCHAR(30) NOT NULL
+        CHECK (metodo IN ('PIX', 'CARTAO', 'BOLETO')),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDENTE'
+        CHECK (status IN ('PENDENTE', 'APROVADO', 'RECUSADO')),
+    valor NUMERIC(12,2) NOT NULL CHECK (valor >= 0),
+    criado_em TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
 
-CREATE OR REPLACE FUNCTION cadastrar_aluno(
-    p_nome VARCHAR,
-    p_cpf VARCHAR,
-    p_data_nascimento DATE
-)
-RETURNS TEXT AS
-$$
-BEGIN
-
-    IF EXISTS (
-        SELECT 1
-        FROM alunos
-        WHERE cpf = p_cpf
-    ) THEN
-        RETURN 'ERRO: CPF já cadastrado.';
-    END IF;
-
-    INSERT INTO alunos(nome, cpf, data_nascimento)
-    VALUES (p_nome, p_cpf, p_data_nascimento);
-
-    RETURN 'Aluno cadastrado com sucesso.';
-
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION cadastrar_professor(
-    p_nome VARCHAR,
-    p_cpf VARCHAR,
-    p_especialidade VARCHAR
-)
-RETURNS TEXT AS
-$$
-BEGIN
-
-    IF EXISTS (
-        SELECT 1
-        FROM professores
-        WHERE cpf = p_cpf
-    ) THEN
-        RETURN 'ERRO: CPF do professor já cadastrado.';
-    END IF;
-
-    INSERT INTO professores(nome, cpf, especialidade)
-    VALUES (p_nome, p_cpf, p_especialidade);
-
-    RETURN 'Professor cadastrado com sucesso.';
-
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION criar_disciplina(
-    p_nome VARCHAR,
-    p_codigo VARCHAR
-)
-RETURNS TEXT AS
-$$
-BEGIN
-
-    IF EXISTS (
-        SELECT 1
-        FROM disciplinas
-        WHERE codigo = p_codigo
-    ) THEN
-        RETURN 'ERRO: Código da disciplina já existe.';
-    END IF;
-
-    INSERT INTO disciplinas(nome, codigo)
-    VALUES (p_nome, p_codigo);
-
-    RETURN 'Disciplina criada com sucesso.';
-
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION vincular_professor_turma(
-    p_professor_id INTEGER,
-    p_disciplina_id INTEGER
-)
-RETURNS TEXT AS
-$$
-BEGIN
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM professores
-        WHERE id_professor = p_professor_id
-    ) THEN
-        RETURN 'ERRO: Professor não encontrado.';
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM disciplinas
-        WHERE id_disciplina = p_disciplina_id
-    ) THEN
-        RETURN 'ERRO: Disciplina não encontrada.';
-    END IF;
-
-    INSERT INTO professor_turma(professor_id, disciplina_id)
-    VALUES (p_professor_id, p_disciplina_id);
-
-    RETURN 'Professor vinculado à disciplina com sucesso.';
-
-END;
-$$ LANGUAGE plpgsql;
-
-
-INSERT INTO alunos(nome, cpf, data_nascimento)
-VALUES ('João Paulo', '12345678901', '2004-10-15');
-
-INSERT INTO professores(nome, cpf, especialidade)
-VALUES ('Carlos Silva', '98765432100', 'Ciencia de dados');
-
-INSERT INTO disciplinas(nome, codigo)
-VALUES ('Ciencia de dados', 'CDIA01');
-
-INSERT INTO professor_turma(professor_id, disciplina_id)
-VALUES (1, 1);
-
-
-SELECT * FROM alunos;
-SELECT * FROM professores;
-SELECT * FROM disciplinas;
-SELECT * FROM professor_turma;
+CREATE INDEX idx_pedidos_cliente ON pedidos(cliente_id);
+CREATE INDEX idx_itens_produto ON itens_pedido(produto_id);
