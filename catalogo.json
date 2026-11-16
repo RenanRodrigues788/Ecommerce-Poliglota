@@ -1,0 +1,42 @@
+
+[
+  {
+    "produto_id": 1,
+    "descricao": "Notebook para estudos e trabalho",
+    "categoria": "Informatica",
+    "marca": "TechBook",
+    "atributos": {
+      "processador": "Intel Core i5",
+      "memoria_ram": "16 GB",
+      "armazenamento": "512 GB SSD"
+    },
+    "imagens": ["notebook.jpg"],
+    "tags": ["notebook", "estudos", "trabalho"]
+  },
+  {
+    "produto_id": 2,
+    "descricao": "Mouse sem fio ergonomico",
+    "categoria": "Acessorios",
+    "marca": "TechMouse",
+    "atributos": {
+      "conexao": "Bluetooth",
+      "cor": "Preto",
+      "alimentacao": "Pilha AA"
+    },
+    "imagens": ["mouse.jpg"],
+    "tags": ["mouse", "perifericos", "informatica"]
+  },
+  {
+    "produto_id": 3,
+    "descricao": "Teclado mecanico RGB",
+    "categoria": "Acessorios",
+    "marca": "TechKeys",
+    "atributos": {
+      "tipo": "Mecanico",
+      "iluminacao": "RGB",
+      "conexao": "USB"
+    },
+    "imagens": ["teclado.jpg"],
+    "tags": ["teclado", "gamer", "informatica"]
+  }
+]
