@@ -1,5 +1,5 @@
-
 from database.postgres_db import PostgresModule
+from database.mongo_db import MongoModule
 
 
 # ==========================================
@@ -18,6 +18,7 @@ def exibir_menu():
     print("5 - Criar pedido")
     print("6 - Listar pedidos")
     print("7 - Registrar pagamento")
+    print("8 - Consultar detalhes de produto (MongoDB)")
     print("0 - Sair")
 
     print("=" * 40)
@@ -236,7 +237,45 @@ def iniciar_sistema():
                 except Exception as erro:
                     print(f"Erro ao registrar pagamento: {erro}")
 
+            # CONSULTAR DETALHES DO PRODUTO NO MONGODB
+            elif opcao == "8":
 
+                print("\n--- DETALHES DO PRODUTO (MONGODB) ---")
+
+                try:
+                    produto_id = int(input("ID do produto: "))
+
+                except ValueError:
+                    print("Erro: informe um ID numerico.")
+                    continue
+
+                try:
+                    mongo_db = MongoModule()
+
+                    try:
+                        produto = mongo_db.buscar_detalhes_produto(produto_id)
+                    finally:
+                        mongo_db.fechar_conexao()
+
+                    if produto:
+                        print(f"\nProduto ID: {produto['produto_id']}")
+                        print(f"Categoria: {produto.get('categoria', 'Nao informada')}")
+                        print(f"Marca: {produto.get('marca', 'Nao informada')}")
+                        print(f"Descricao: {produto.get('descricao', 'Nao informada')}")
+
+                        print("\nCaracteristicas:")
+                        for chave, valor in produto.get("atributos", {}).items():
+                            print(f"  {chave}: {valor}")
+
+                        print(f"\nTags: {', '.join(produto.get('tags', []))}")
+                        print(f"Imagens: {', '.join(produto.get('imagens', []))}")
+
+                    else:
+                        print("Produto nao encontrado no MongoDB.")
+
+                except Exception as erro:
+                    print(f"Erro ao consultar MongoDB: {erro}")
+                    
             # SAIR
             elif opcao == "0":
 

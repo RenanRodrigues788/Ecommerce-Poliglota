@@ -1,100 +1,71 @@
+
+import os
 from pymongo import MongoClient
-from datetime import datetime
+
 
 class MongoModule:
+
     def __init__(self):
-        # A conexão pela rede do Docker
-        self.client = MongoClient("mongodb://admin:senha@mongodb:27017/")
-        self.db = self.client['sistema_escolar']
-        
-        self.notas_colecao = self.db['notas_alunos']
-        self.planos_colecao = self.db['planos_ensino']
+        # Configuracao da conexao com MongoDB
+        usuario = os.getenv("MONGO_USER", "admin")
+        senha = os.environ["MONGO_PASSWORD"]
+        host = os.getenv("MONGO_HOST", "mongodb")
 
-    def salvar_notas_com_regra(self, aluno_id, disciplina_id, p1, p2, lab, proj, p3=None):
-        if not aluno_id or not disciplina_id:
-            return {"erro": "ID ou Disciplina inválidos"}
-            
-        media_inicial = (p1 + p2 + lab + proj) / 4    
-        
-        if p3 is None:
-            if media_inicial >= 6:
-                status = "Aprovado na Disciplina"
-                precisa_p3 = False
-                media_final = media_inicial
-            else:
-                status = "Em Recuperação (Precisa de P3)"
-                precisa_p3 = True
-                media_final = media_inicial
-        else:
-            if p3 > min(p1, p2):
-                if p1 < p2: p1 = p3
-                else: p2 = p3
-            media_final = (p1 + p2 + lab + proj) / 4
-            status = "Aprovado na Disciplina" if media_final >= 6 else "Reprovado na Disciplina"
-            precisa_p3 = False
-            
-        try:
-            filtro = {"aluno_id": aluno_id, "disciplina_id": disciplina_id}
-            dados = {
-                "$set": {
-                    "avaliacoes": {"p1": p1, "p2": p2, "lab": lab, "proj": proj, "p3": p3},
-                    "media_final": round(media_final, 2),
-                    "status": status,
-                    "precisa_p3": precisa_p3,
-                    "data_atualizacao": datetime.now().strftime("%d/%m/%Y %H:%M")
-                }
-            }
-            self.notas_colecao.update_one(filtro, dados, upsert=True)
-            
-        except Exception as e:
-            # AQUI ESTÁ A MÁGICA: Ele vai nos contar o verdadeiro motivo!
-            print(f"\n[AVISO] Banco MongoDB offline. Erro detalhado: {e}")
+        self.client = MongoClient(
+            host=host,
+            port=27017,
+            username=usuario,
+            password=senha,
+            authSource="admin",
+            serverSelectionTimeoutMS=5000
+        )
 
-        return {"media": round(media_final, 2), "status": status, "p3": precisa_p3}
+        # Verificar se o MongoDB esta acessivel
+        self.client.admin.command("ping")
 
-    def lancar_notas(self, aluno_id, disciplina_id, objeto_notas):
-        """Salva um documento JSON contendo as notas."""
-        filtro = {"aluno_id": aluno_id, "disciplina_id": disciplina_id}
-        dados = {
-            "$set": {
-                "notas": objeto_notas,
-                "data_atualizacao": datetime.now().strftime("%d/%m/%Y %H:%M")
-            }
-        }
-        self.notas_colecao.update_one(filtro, dados, upsert=True)
-        return {"sucesso": True, "mensagem": "Notas lançadas com sucesso!"}
+        # Banco e colecao do e-commerce
+        self.db = self.client["ecommerce"]
+        self.catalogo = self.db["catalogo_produtos"]
 
-    def definir_plano_ensino(self, disciplina_id, ementa):
-        """Salva o conteúdo programático da disciplina."""
-        filtro = {"disciplina_id": disciplina_id}
-        dados = {
-            "$set": {
-                "ementa": ementa,
-                "data_atualizacao": datetime.now().strftime("%d/%m/%Y %H:%M")
-            }
-        }
-        self.planos_colecao.update_one(filtro, dados, upsert=True)
-        return {"sucesso": True, "mensagem": f"Plano de ensino de {disciplina_id} salvo."}
+        # Evitar produtos duplicados
+        self.catalogo.create_index(
+            "produto_id",
+            unique=True
+        )
 
-    def buscar_historico_aluno(self, aluno_id):
-        """Recupera todos os documentos de notas vinculados àquele ID para gerar o boletim."""
-        historico = list(self.notas_colecao.find({"aluno_id": aluno_id}, {"_id": 0}))
-        return historico
+    # ======================================
+    # CATALOGO DE PRODUTOS
+    # ======================================
 
-    def atualizar_nota_especifica(self, aluno_id, disciplina_id, nova_nota):
-        """Localiza o documento correto e altera apenas um campo."""
-        campos_atualizados = {}
-        for chave, valor in nova_nota.items():
-            campos_atualizados[f"notas.{chave}"] = valor
-            
-        campos_atualizados["data_atualizacao"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+    def cadastrar_detalhes_produto(self, produto):
+        if "produto_id" not in produto:
+            return "Erro: produto_id obrigatorio."
 
-        filtro = {"aluno_id": aluno_id, "disciplina_id": disciplina_id}
-        dados = {"$set": campos_atualizados}
-        
-        resultado = self.notas_colecao.update_one(filtro, dados)
-        
-        if resultado.matched_count > 0:
-            return {"sucesso": True, "mensagem": "Nota específica atualizada!"}
-        else:
-            return {"sucesso": False, "erro": "Aluno ou disciplina não encontrados."}
+        self.catalogo.update_one(
+            {"produto_id": produto["produto_id"]},
+            {"$set": produto},
+            upsert=True
+        )
+
+        return "Detalhes do produto salvos com sucesso!"
+
+    def buscar_detalhes_produto(self, produto_id):
+        return self.catalogo.find_one(
+            {"produto_id": produto_id},
+            {"_id": 0}
+        )
+
+    def listar_catalogo(self):
+        return list(
+            self.catalogo.find(
+                {},
+                {"_id": 0}
+            )
+        )
+
+    # ======================================
+    # ENCERRAR CONEXAO
+    # ======================================
+
+    def fechar_conexao(self):
+        self.client.close()
