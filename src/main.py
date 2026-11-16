@@ -15,6 +15,7 @@ def exibir_menu():
     print("2 - Listar clientes")
     print("3 - Cadastrar produto")
     print("4 - Listar produtos")
+    print("5 - Criar pedido")
     print("0 - Sair")
 
     print("=" * 40)
@@ -121,6 +122,34 @@ def iniciar_sistema():
                         f"Preco: R$ {produto[3]:.2f} | "
                         f"Estoque: {produto[4]}"
                     )
+
+
+            # CRIAR PEDIDO
+            elif opcao == "5":
+
+                print("\n--- CRIAR PEDIDO ---")
+
+                try:
+                    cliente_id = int(input("ID do cliente: "))
+                    produto_id = int(input("ID do produto: "))
+                    quantidade = int(input("Quantidade: "))
+
+                except ValueError:
+                    print("Erro: informe apenas numeros inteiros.")
+                    continue
+
+                try:
+                    resultado = postgres_db.criar_pedido(
+                        cliente_id,
+                        produto_id,
+                        quantidade
+                    )
+
+                    print(resultado)
+
+                except Exception as erro:
+                    print(f"Erro ao criar pedido: {erro}")
+
 
             # SAIR
             elif opcao == "0":

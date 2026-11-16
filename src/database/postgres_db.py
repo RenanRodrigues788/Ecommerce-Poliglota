@@ -96,6 +96,101 @@ class PostgresModule:
 
         return self.cursor.fetchall()
 
+
+    # ======================================
+    # PEDIDOS
+    # ======================================
+
+    def criar_pedido(self, cliente_id, produto_id, quantidade):
+        try:
+            # Verificar se o cliente existe
+            self.cursor.execute(
+                "SELECT id_cliente FROM clientes WHERE id_cliente = %s",
+                (cliente_id,)
+            )
+
+            if self.cursor.fetchone() is None:
+                self.conexao.rollback()
+                return "Erro: cliente nao encontrado."
+
+            # Buscar produto e bloquear a linha durante a compra
+            self.cursor.execute(
+                """
+                SELECT nome, preco, estoque
+                FROM produtos
+                WHERE id_produto = %s AND ativo = TRUE
+                FOR UPDATE
+                """,
+                (produto_id,)
+            )
+
+            produto = self.cursor.fetchone()
+
+            if produto is None:
+                self.conexao.rollback()
+                return "Erro: produto nao encontrado ou inativo."
+
+            nome, preco, estoque = produto
+
+            # Validar a quantidade
+            if quantidade <= 0:
+                self.conexao.rollback()
+                return "Erro: quantidade deve ser maior que zero."
+
+            if quantidade > estoque:
+                self.conexao.rollback()
+                return f"Erro: estoque insuficiente. Disponivel: {estoque}"
+
+            # Calcular o valor total
+            valor_total = preco * quantidade
+
+            # Criar o pedido
+            self.cursor.execute(
+                """
+                INSERT INTO pedidos (cliente_id, valor_total)
+                VALUES (%s, %s)
+                RETURNING id_pedido
+                """,
+                (cliente_id, valor_total)
+            )
+
+            pedido_id = self.cursor.fetchone()[0]
+
+            # Registrar o produto comprado
+            self.cursor.execute(
+                """
+                INSERT INTO itens_pedido
+                    (pedido_id, produto_id, quantidade, preco_unitario)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (pedido_id, produto_id, quantidade, preco)
+            )
+
+            # Atualizar o estoque
+            self.cursor.execute(
+                """
+                UPDATE produtos
+                SET estoque = estoque - %s
+                WHERE id_produto = %s
+                """,
+                (quantidade, produto_id)
+            )
+
+            # Confirmar todas as alteracoes
+            self.conexao.commit()
+
+            return (
+                f"Pedido {pedido_id} criado com sucesso! "
+                f"Produto: {nome} | "
+                f"Quantidade: {quantidade} | "
+                f"Total: R$ {valor_total:.2f}"
+            )
+
+        except Exception:
+            self.conexao.rollback()
+            raise
+
+
     # ======================================
     # ENCERRAR CONEXAO
     # ======================================
